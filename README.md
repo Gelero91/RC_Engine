@@ -1,7 +1,7 @@
 # RC_Engine
 
 RayCast Engine,
-By Gwendal LR
+by Gwendal LR
 
 Original concept and tutorial by Lode Vandevenne, 
 code by *** (sorry, I'm still looking for you).
