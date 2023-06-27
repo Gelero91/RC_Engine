@@ -1,0 +1,57 @@
+// implémenter dans main
+
+// FLOOR CASTING
+for (let y = 0; y < h; y++) {
+	// rayDir for leftmost ray (x = 0) and rightmost ray (x = w)
+	let rayDirX0 = dirX - planeX;
+	let rayDirY0 = dirY - planeY;
+	let rayDirX1 = dirX + planeX;
+	let rayDirY1 = dirY + planeY;
+  
+	// Current y position compared to the center of the screen (the horizon)
+	let p = y - screenHeight / 2;
+  
+	// Vertical position of the camera.
+	let posZ = 0.5 * screenHeight;
+  
+	// Horizontal distance from the camera to the floor for the current row.
+	// 0.5 is the z position exactly in the middle between floor and ceiling.
+	let rowDistance = posZ / p;
+  
+	// calculate the real world step vector we have to add for each x (parallel to camera plane)
+	// adding step by step avoids multiplications with a weight in the inner loop
+	let floorStepX = rowDistance * (rayDirX1 - rayDirX0) / screenWidth;
+	let floorStepY = rowDistance * (rayDirY1 - rayDirY0) / screenWidth;
+  
+	// real world coordinates of the leftmost column. This will be updated as we step to the right.
+	let floorX = posX + rowDistance * rayDirX0;
+	let floorY = posY + rowDistance * rayDirY0;
+  
+	for (let x = 0; x < screenWidth; ++x) {
+	  // the cell coord is simply got from the integer parts of floorX and floorY
+	  let cellX = Math.floor(floorX);
+	  let cellY = Math.floor(floorY);
+  
+	  // get the texture coordinate from the fractional part
+	  let tx = Math.floor(texWidth * (floorX - cellX)) & (texWidth - 1);
+	  let ty = Math.floor(texHeight * (floorY - cellY)) & (texHeight - 1);
+  
+	  floorX += floorStepX;
+	  floorY += floorStepY;
+  
+	  // choose texture and draw the pixel
+	  let floorTexture = 2;
+	  let ceilingTexture = 3;
+	  let color;
+  
+	  // floor
+	  color = texture[floorTexture][texWidth * ty + tx];
+	  color = (color >> 1) & 8355711; // make a bit darker
+	  buffer[y][x] = color;
+  
+	  // ceiling (symmetrical, at screenHeight - y - 1 instead of y)
+	  color = texture[ceilingTexture][texWidth * ty + tx];
+	  color = (color >> 1) & 8355711; // make a bit darker
+	  buffer[screenHeight - y - 1][x] = color;
+	}
+  }

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Texture Map Editor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f1f1f1;
+      font-family: Arial, sans-serif;
+    }
+
+      .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+    }
+
+    .map {
+      display: flex;
+      flex-wrap: wrap;
+      width: 35%;
+      max-height: 80vh;
+      border: 1px solid #999;
+    }
+
+    .tile {
+      width: calc(100% / 24);
+      height: calc(100% / 24);
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .palette {
+      width: 20%;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #999;
+    }
+
+    .palette button {
+      text-align: left;
+      margin-bottom: 10px;
+      width: 100%;
+      padding: 5px;
+      font-size: 14px;
+    }
+
+    .export {
+      width: 20%;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #999;
+    }
+
+    .export button {
+      margin-bottom: 10px;
+      width: 100%;
+      padding: 5px;
+      font-size: 14px;
+    }
+
+    #mapDataInput {
+      width: 100%;
+      height: 100px;
+    }
+
+    #confirmationModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .modal-content p {
+      margin-bottom: 10px;
+    }
+
+    .modal-content button {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="export">
+      <button onclick="exportMap()">Exporter en JSON</button>
+      <input type="text" id="mapDataInput" readonly>
+      <button onclick="copyToClipboard()">Copier le JSON</button>
+    </div>
+    <div class="map"></div>
+    <div class="palette">
+      <button onclick="selectTileType(0)">0 - Sol</button>
+      <button onclick="selectTileType(1)">1 - Pierre</button>
+      <button onclick="selectTileType(2)">2 - Buisson</button>
+      <button onclick="selectTileType(3)">∏ - Porte</button>
+      <button onclick="selectTileType(4)">4 - ?</button>
+      <button onclick="selectTileType(5)">5 - Porte dérobée</button>
+      <button onclick="selectTileType(6)">● - Colone</button>
+      <button onclick="selectTileType(7)">◤ - Diagonale /</button>
+      <button onclick="selectTileType(8)">◣ - Diagonale \</button>
+      <button onclick="selectTileType(9)">▩ - Champ de force</button>
+      <button onclick="selectTileType(10)">10 - ? </button>
+      <button onclick="selectTileType(11)">11 - Forêt</button>
+      <button onclick="selectTileType(12)">12 - Mur orné</button>
+      <button onclick="selectTileType(13)">13 - Mur de roche</button>
+    </div>
+  </div>
+
+  <div id="confirmationModal">
+    <div class="modal-content">
+      <p>Êtes-vous sûr de vouloir réinitialiser la carte ?</p>
+      <button onclick="confirmResetMap()">Réinitialiser</button>
+      <button onclick="cancelResetMap()">Annuler</button>
+    </div>
+  </div>
+
+  <script>
+    var worldMap =[[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,11,11,11,11,11,11,11,11],[2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,11,0,0,0,0,11],[2,0,0,2,0,0,0,0,2,0,0,0,0,0,0,2,2,0,11,5,11,11,11,11],[2,0,2,2,0,0,2,2,2,0,0,0,0,0,2,11,0,0,0,0,0,0,11,11],[2,0,2,0,0,2,2,0,0,0,0,0,0,2,2,11,0,0,11,11,0,0,0,11],[2,0,0,0,0,0,0,0,0,0,0,0,0,0,2,11,0,0,0,11,0,11,11,11],[2,2,2,2,0,6,0,0,0,0,0,0,0,0,2,11,0,0,0,0,0,0,0,11],[2,0,0,0,0,0,7,8,0,0,0,0,0,0,0,2,11,11,11,0,0,0,0,2],[2,0,2,2,0,0,8,7,0,0,0,0,0,0,0,0,2,2,2,0,0,11,0,2],[2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,11,0,2],[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,2],[2,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2],[2,0,2,2,2,2,2,0,0,7,1,9,1,8,0,0,0,0,0,7,1,1,8,2],[2,0,0,0,2,0,2,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,2],[2,2,0,0,2,0,0,0,0,9,0,0,0,1,0,1,0,1,0,1,0,0,1,2],[2,13,13,0,13,13,13,0,0,1,0,0,0,1,1,1,3,1,1,1,3,1,1,1],[13,0,0,0,0,13,0,0,0,8,1,3,1,7,0,1,0,1,0,0,0,1,0,1],[13,0,0,0,13,13,0,6,0,0,1,0,1,0,0,0,0,0,0,0,0,3,0,1],[13,0,6,0,13,13,0,0,0,7,1,0,1,0,0,0,0,0,0,0,0,1,0,1],[13,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1],[13,0,0,6,0,0,6,0,0,1,1,3,1,1,1,3,1,1,1,3,1,1,0,1],[13,13,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],[13,13,0,13,13,13,13,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],[13,13,13,13,13,13,13,13,13,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]];
+    var selectedTile = 0;
+    var mapContainer = document.querySelector('.map');
+
+    function createMap() {
+      for (var i = 0; i < worldMap.length; i++) {
+        for (var j = 0; j < worldMap[i].length; j++) {
+          var tile = document.createElement('div');
+          tile.classList.add('tile');
+          tile.setAttribute('data-x', j);
+          tile.setAttribute('data-y', i);
+          tile.addEventListener('click', function() {
+            var x = parseInt(this.getAttribute('data-x'));
+            var y = parseInt(this.getAttribute('data-y'));
+            setTile(x, y, selectedTile);
+          });
+          mapContainer.appendChild(tile);
+        }
+      }
+    }
+
+    function updateMap() {
+      var tiles = mapContainer.querySelectorAll('.tile');
+      for (var i = 0; i < tiles.length; i++) {
+        var x = parseInt(tiles[i].getAttribute('data-x'));
+        var y = parseInt(tiles[i].getAttribute('data-y'));
+        var tileValue = worldMap[y][x];
+        tiles[i].innerText = tileValue;
+        tiles[i].style.backgroundColor = getTileColor(tileValue);
+      }
+    }
+
+    function getTileColor(tileValue) {
+  switch (tileValue) {
+    case 0:
+      return '#fff'; // white
+    case 1:
+      return '#ccc'; // gray
+    case 2:
+      return '#00ff00'; // green
+    case 3:
+      return '#ff0000'; // red
+    case 4:
+      return '#00ff00'; // green
+    case 5:
+      return '#0000ff'; // blue
+    case 6:
+      return '#ffa500'; // orange
+    case 7:
+      return '#ff00ff'; // magenta
+    case 8:
+      return '#00ffff'; // cyan
+    case 9:
+      return '#ffa500'; // orange
+    case 10:
+      return '#a52a2a'; // brown
+    case 11:
+      return  '#008000'; // dark green
+    case 12:
+      return '#800080'; // purple
+    case 13:
+      return '#ffff00'; // yellow
+    default:
+      return '#fff';
+  }
+}
+
+
+    function setTile(x, y, value) {
+      worldMap[y][x] = value;
+      updateMap();
+    }
+
+    function selectTileType(tileType) {
+      selectedTile = tileType;
+    }
+
+    function exportMap() {
+      var mapData = JSON.stringify(worldMap);
+      document.getElementById('mapDataInput').value = mapData;
+    }
+
+    function copyToClipboard() {
+      var mapDataInput = document.getElementById('mapDataInput');
+      mapDataInput.select();
+      mapDataInput.setSelectionRange(0, 99999); // For mobile devices
+      document.execCommand('copy');
+      alert('Le JSON a été copié dans le presse-papier.');
+    }
+
+    function resetMap() {
+      worldMap = [	
+					[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+					[2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+					[2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,5,2,2,2,2],
+					[2,0,2,2,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2],
+					[2,0,2,0,0,2,2,0,0,0,6,0,0,0,0,2,0,0,0,0,0,0,0,2],
+					[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2],
+					[2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2],
+					[2,0,0,0,0,0,7,2,0,0,0,6,0,0,0,2,2,2,2,0,0,0,0,2],
+					[2,0,0,0,0,0,2,7,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+					[2,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,2,0,0,0,0,2],
+					[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+					[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+					[2,0,2,2,2,2,0,0,0,7,1,9,1,8,0,0,0,0,0,0,0,0,0,2],
+					[2,0,0,0,2,0,0,0,0,1,0,0,0,1,0,0,7,1,1,8,0,0,0,2],
+					[2,2,2,0,2,0,0,0,0,9,0,0,0,9,0,0,1,0,0,1,0,0,0,2],
+					[2,0,0,0,2,0,0,0,0,1,0,0,0,1,0,0,1,0,0,1,0,7,1,1],
+					[2,0,2,2,2,2,0,0,0,8,1,3,1,7,0,0,8,1,1,7,0,1,0,1],
+					[2,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],
+					[2,0,0,0,0,0,0,0,2,1,1,0,1,1,2,0,0,0,0,0,0,1,0,1],
+					[2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+					[2,0,0,2,2,0,0,0,2,1,1,3,1,1,2,0,0,0,0,0,0,3,0,1],
+					[2,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
+					[2,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
+					[2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,1,1,1]
+				];
+      updateMap();
+    }
+
+    function confirmResetMap() {
+      var confirmationModal = document.getElementById('confirmationModal');
+      confirmationModal.style.display = 'none';
+      resetMap();
+    }
+
+    function cancelResetMap() {
+      var confirmationModal = document.getElementById('confirmationModal');
+      confirmationModal.style.display = 'none';
+    }
+
+    createMap();
+    updateMap();
+  </script>
+</body>
+</html>
