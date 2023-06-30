@@ -1,3 +1,5 @@
+// à compiler en WASM, juste des algorythmes pour l'affichage des sprites selon l'angle et la distance
+
 function Sprite(img, x, y, ang, width, height) {
 	this.x = x;
 	this.y = y;
